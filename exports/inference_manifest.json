@@ -1,0 +1,10 @@
+{
+  "input_root": "C:\\Users\\fmontalfu\\Documents\\QuantumFraud\\data\\qguard\\dataset",
+  "model_directory": "C:\\Users\\fmontalfu\\Documents\\QuantumFraud\\checkpoints",
+  "accounts_scanned": 59864,
+  "candidate_pairs_total": 47865,
+  "candidate_pairs_scored": 3500,
+  "snapshot_utc": "2026-09-29T00:00:00+00:00",
+  "partial_scan": true,
+  "note": "Ownership linkage, NOT fraud classification."
+}

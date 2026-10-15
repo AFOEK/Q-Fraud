@@ -1,0 +1,2 @@
+{"timestamp_utc": "2026-10-15T23:06:41.481466+00:00", "case_id": "QG-0000961", "reviewer": "RV001", "selected_disposition": "Monitor", "rationale": "Need further monitoring", "policy_review_confirmed": true, "model_link_score": 0.1898760199546814, "demo_data": false}
+{"timestamp_utc": "2026-10-15T23:07:33.747363+00:00", "case_id": "QG-0003153", "reviewer": "RV001", "selected_disposition": "Recommend suspension/closure review", "rationale": "Bannned", "policy_review_confirmed": true, "model_link_score": 0.9999877214431764, "demo_data": false}

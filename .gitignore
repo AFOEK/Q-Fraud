@@ -1,3 +1,4 @@
 *.zip
 qguard_pilot_300/
 data/
+__pycache__/
