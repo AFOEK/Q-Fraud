@@ -1,0 +1,19 @@
+{
+  "status": "PASSED",
+  "accounts": 130,
+  "columns": 63,
+  "source_split": "test",
+  "selection": "Curated synthetic demonstration mixture",
+  "cohorts": {
+    "ordinary": 30,
+    "fraud": 20,
+    "aml": 20,
+    "protection": 20,
+    "B01": 10,
+    "B04": 10,
+    "B02": 10,
+    "B03": 10
+  },
+  "labels_in_upload": false,
+  "precomputed_scores_in_upload": false
+}

@@ -1,0 +1,47 @@
+{
+  "status": "PASSED",
+  "dataset": "Synthetic",
+  "accounts": 1199885,
+  "task_order": [
+    "fraud",
+    "aml",
+    "protection"
+  ],
+  "v5_ensemble_seeds": [
+    17,
+    42,
+    99
+  ],
+  "operational_models": {
+    "fraud": {
+      "score_column": "fraud_v3_score",
+      "threshold": 0.3154709630434622
+    },
+    "aml": {
+      "score_column": "aml_v2_score",
+      "threshold": 0.3831407726
+    },
+    "protection": {
+      "score_column": "protection_v2_score",
+      "threshold": 0.5813578367
+    }
+  },
+  "alert_counts": {
+    "fraud": 5546,
+    "aml": 4783,
+    "protection": 18876
+  },
+  "flagged_accounts": 29195,
+  "queue_rows": 20000,
+  "quantum_execution": "Simulated six-qubit VQC",
+  "limitations": [
+    "Synthetic dataset only",
+    "Scores are not calibrated real-world probabilities",
+    "LightGBM models drive operational alerts",
+    "V5 models provide experimental assessments",
+    "Frozen neural tensors support known accounts only",
+    "New raw uploads require training-consistent preprocessing",
+    "Explicit relationship edges are not included",
+    "Private target labels are excluded"
+  ]
+}

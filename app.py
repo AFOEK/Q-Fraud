@@ -17,7 +17,7 @@ AUDIT = ROOT / "audit"
 AUDIT.mkdir(parents=True, exist_ok=True)
 AUDIT_FILE = AUDIT / "decisions.jsonl"
 
-st.set_page_config(page_title="Q-Guard | Investigator Console", page_icon="🛡️", layout="wide")
+st.set_page_config(page_title="Q-LYNX", page_icon="🛡️", layout="wide")
 st.markdown("""<style>
 .block-container{padding-top:1.4rem;max-width:1500px}
 h1,h2,h3{letter-spacing:-.03em}
@@ -196,7 +196,7 @@ def read_audit():
     return pd.DataFrame([json.loads(line) for line in AUDIT_FILE.read_text().splitlines() if line.strip()])
 
 
-st.title("Q-Guard / Trained-Model Investigator Console")
+st.title("Q-LYNX")
 st.caption("Explainable common-ownership link detection · Evidence review · NLP case assistance · Human-controlled dispositions")
 
 with st.sidebar:
@@ -248,13 +248,13 @@ with st.sidebar:
     min_score = st.slider("Minimum link score", 0.0, 1.0, 0.0, .01)
     st.info("Scores represent model-predicted account linkage, NOT proven fraud or calibrated fraud probability.")
 
-st.subheader('Uploaded validation results (not live fraud predictions)')
-report_file = ROOT / 'checkpoints' / 'model_comparison.csv'
-if report_file.is_file():
-    summary = pd.read_csv(report_file)
-    display_cols = [c for c in ['Model', 'Average precision', 'ROC-AUC', 'Precision', 'Recall', 'F1', 'MCC'] if c in summary]
-    st.dataframe(summary[display_cols], hide_index=True, use_container_width=True)
-    st.caption('Reported on synthetic candidate-pair validation; not deployment performance. Only account ownership linkage was trained.')
+# st.subheader('Uploaded validation results (not live fraud predictions)')
+# report_file = ROOT / 'checkpoints' / 'model_comparison.csv'
+# if report_file.is_file():
+#     summary = pd.read_csv(report_file)
+#     display_cols = [c for c in ['Model', 'Average precision', 'ROC-AUC', 'Precision', 'Recall', 'F1', 'MCC'] if c in summary]
+#     st.dataframe(summary[display_cols], hide_index=True, use_container_width=True)
+#     st.caption('Reported on synthetic candidate-pair validation; not deployment performance. Only account ownership linkage was trained.')
 
 try:
     raw_cases = load_data(uploaded)

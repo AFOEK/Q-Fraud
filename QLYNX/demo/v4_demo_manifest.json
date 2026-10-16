@@ -1,0 +1,28 @@
+{
+  "status": "PASSED",
+  "accounts": 130,
+  "csv_sha256": "9c93a91c985b924a5cdec76e0fdd51b52ffce8f280b4712aeb2e8acbf7ff4e4e",
+  "input_file": "demo_accounts_upload.csv",
+  "prepared_inputs": "v4_demo_inputs.npz",
+  "input_names": [
+    "tab",
+    "seq",
+    "graph_self",
+    "graph_device",
+    "graph_token",
+    "graph_links"
+  ],
+  "task_order": [
+    "fraud",
+    "aml",
+    "protection"
+  ],
+  "model_architecture": "Temporal GRU + graph neighbourhood encoder + classical or four-qubit VQC head",
+  "inference_scope": "Known accounts with frozen preprocessed neural inputs from the trained dataset",
+  "limitations": [
+    "Not valid for modified account feature values",
+    "Not valid for unknown account IDs",
+    "Normalization statistics are not yet exported",
+    "Scores are not calibrated real-world probabilities"
+  ]
+}
