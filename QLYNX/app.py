@@ -13,6 +13,7 @@ import plotly.express as px
 from risk_ui import (RISK_COLORS, RISK_NAMES, RISK_PALE, PRIORITY_COLORS,
                      add_triage, task_band, badge, task_badge, colored_table, risk_cards_html)
 from graph_view import (context_for_account, aggregate_graph, parse_edges, linked_graph, render_graph)
+from workspace_v3 import CSS as WORKSPACE_CSS, queue_view, account360, relationships
 import streamlit as st
 
 from copilot import ask_ollama, evidence_packet, fallback_note
@@ -31,6 +32,18 @@ PAGES = (
     "Relationship Explorer", "Data Intake", "Decisions & Audit", "Model Laboratory",
     "LLM Investigator Copilot", "Appearance",
 )
+NAV_ICONS = {
+    "Command Centre": ":material/dashboard:",
+    "Investigation Queue": ":material/filter_list:",
+    "Account 360°": ":material/person_search:",
+    "Historical Context": ":material/show_chart:",
+    "Relationship Explorer": ":material/hub:",
+    "Data Intake": ":material/cloud_upload:",
+    "Decisions & Audit": ":material/fact_check:",
+    "Model Laboratory": ":material/science:",
+    "LLM Investigator Copilot": ":material/auto_awesome:",
+    "Appearance": ":material/palette:",
+}
 if "page" not in st.session_state:
     st.session_state.page = "Command Centre"
 if "source" not in st.session_state:
@@ -95,6 +108,7 @@ __ACTIVE_SELECTOR__
 .ql-score-foot{font-size:.77rem;color:#72829d;margin-top:7px}
 @media(max-width:850px){.ql-risk-grid{grid-template-columns:1fr}.block-container{padding-left:1rem;padding-right:1rem}}
 </style>""".replace("__ACTIVE_SELECTOR__", "section[data-testid='stSidebar'] .st-key-nav_"+str(PAGES.index(st.session_state.page))+" button{background:#e5eaf4 !important;color:#142442 !important;font-weight:730 !important;border-left:3px solid #253b60 !important;}"), unsafe_allow_html=True)
+st.markdown("<style>" + WORKSPACE_CSS + "</style>", unsafe_allow_html=True)
 
 @st.cache_data(show_spinner="Reading demo snapshot…")
 def demo_predictions():
@@ -194,12 +208,12 @@ with st.sidebar:
     st.divider()
     st.markdown('<div class="ql-section">Investigation</div>', unsafe_allow_html=True)
     for page_name in PAGES[:5]:
-        st.button(page_name, key=f"nav_{PAGES.index(page_name)}", on_click=go, args=(page_name,), use_container_width=True)
+        st.button(page_name, key=f"nav_{PAGES.index(page_name)}", icon=NAV_ICONS[page_name], on_click=go, args=(page_name,), use_container_width=True)
     st.markdown('<div class="ql-section">Operations</div>', unsafe_allow_html=True)
     for page_name in PAGES[5:9]:
-        st.button(page_name, key=f"nav_{PAGES.index(page_name)}", on_click=go, args=(page_name,), use_container_width=True)
+        st.button(page_name, key=f"nav_{PAGES.index(page_name)}", icon=NAV_ICONS[page_name], on_click=go, args=(page_name,), use_container_width=True)
     st.markdown('<div class="ql-section">Preferences</div>', unsafe_allow_html=True)
-    st.button("Appearance", key="nav_9", on_click=go, args=("Appearance",), use_container_width=True)
+    st.button("Appearance", key="nav_9", icon=NAV_ICONS["Appearance"], on_click=go, args=("Appearance",), use_container_width=True)
     st.divider()
     st.markdown("**Demo Investigator**")
     st.caption("Local research demonstration · Synthetic data")
@@ -208,7 +222,8 @@ with st.sidebar:
 st.markdown("**◈  QLYNX — Anti-Money Laundering, Fraud & Player Protection**")
 st.markdown('<div class="ql-kicker">Investigation workspace / '+st.session_state.page+'</div>', unsafe_allow_html=True)
 page = st.session_state.page
-st.title(page)
+if page != "Account 360°":
+    st.title(page)
 
 if page == "Command Centre":
     st.markdown('<div class="ql-caption">Operational fraud, AML and player protection monitoring.</div>', unsafe_allow_html=True)
@@ -247,85 +262,34 @@ if page == "Command Centre":
             "experimental": "V5 quantum & strong classical three-seed ensembles", "source": "Synthetic benchmark"})
 
 elif page == "Investigation Queue":
-    st.caption("Prioritize operational alerts across fraud, AML and player protection. Risk scores are uncalibrated.")
-    view = add_triage(data_view(), manifest())
-    all_flags = alerts(view)
-    col_cat, col_prio = st.columns([2, 1])
-    with col_cat:
-        category = st.selectbox("Alert category", ["All"] + [TASK_LABELS[t] for t in TASKS])
-    with col_prio:
-        priority_filter = st.multiselect("Priority", list(PRIORITY_COLORS), default=list(PRIORITY_COLORS))
-    if category != "All":
-        task = next(t for t in TASKS if TASK_LABELS[t] == category)
-        view = view.loc[all_flags[task]].copy()
-    view = view.loc[view.priority.isin(priority_filter)].sort_values(
-        ["_priority_sort", "_risk_peak"], ascending=False)
-    legend = ' '.join(badge(k) for k in PRIORITY_COLORS)
-    st.markdown('<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:7px 0 14px"><span style="font-size:.8rem;color:#63748a">Triage levels:</span>'+legend+'</div>', unsafe_allow_html=True)
-    st.caption("Priority policy: Critical = multiple alert categories or any alerted score ≥0.95; "
-               "High = an alerted score ≥0.70 or large threshold margin; "
-               "Review = other active alerts; Watch = near threshold; Routine = below. Not calibrated risk.")
-    cols = ["account_id", "priority", "alert_count", "fraud_score", "aml_score", "protection_score"]
-    st.dataframe(colored_table(view[cols].head(500)), hide_index=True, use_container_width=True, height=415)
-    if not view.empty:
-        row = select_account(view.head(500), "queue")
-        colors = st.columns(3, gap="medium")
-        for col, task in zip(colors, TASKS):
-            score = row[f"{task}_score"]
-            threshold = float(manifest()["operational_models"][task]["threshold"])
-            band = task_band(float(score), threshold)
-            with col:
-                st.markdown(f'<div class="ql-score-card" style="--risk:{RISK_COLORS[task]};--risk-bg:{RISK_PALE[task]};--risk-border:{RISK_COLORS[task]}38">'
-                    f'<strong>{RISK_NAMES[task]}</strong><div class="ql-score-number">{float(score):.4f}</div>'
-                    f'<div class="ql-score-foot">{html.escape(band)} · Alert threshold {threshold:.3f}</div></div>',
-                    unsafe_allow_html=True)
-        st.markdown(f"**Account triage:** {badge(str(row.priority))}", unsafe_allow_html=True)
-        st.button("Inspect in Account 360° →", on_click=go, args=("Account 360°",), type="primary")
-    with st.expander("Category-specific risk tables", expanded=False):
-        st.caption("Each table is sorted by its own model score. The band depends on that category's saved threshold.")
-        tabs = st.tabs([f"{RISK_NAMES[t]}" for t in TASKS])
-        base = add_triage(data_view(), manifest())
-        for tab, task in zip(tabs, TASKS):
-            with tab:
-                cutoff = float(manifest()["operational_models"][task]["threshold"])
-                tbl = base[["account_id", f"{task}_score", f"{task}_alert", "priority"]].copy()
-                tbl = tbl.sort_values(f"{task}_score", ascending=False)
-                tbl["Band"] = tbl[f"{task}_score"].map(lambda val: task_band(float(val), cutoff))
-                tbl = tbl.rename(columns={f"{task}_score": "Risk score", f"{task}_alert": "Alert", "priority": "Overall priority"})
-                st.caption(f"{int(tbl.Alert.sum())} current {RISK_NAMES[task].lower()} alerts · threshold {cutoff:.4f}")
-                st.dataframe(colored_table(tbl.head(100), score_task=task), hide_index=True, use_container_width=True, height=330)
+    sources = ["Demo snapshot"] + (["Latest inference"] if "fresh_scores" in st.session_state else []) + ["Exported 20K queue"]
+    def _switch_source(name):
+        st.session_state.source = name
+    def _open_account(account_id):
+        st.session_state.active_account = str(account_id)
+        go("Account 360°")
+    queue_view(data=data_view(), manifest=manifest(), sources=sources,
+               source_name=st.session_state.source, set_source=_switch_source,
+               on_account=_open_account, audit_path=ROOT / "audit/decisions.jsonl",
+               on_intake=lambda: go("Data Intake"))
 
 elif page == "Account 360°":
-    view = data_view()
-    row = select_account(view.head(20000), "account")
-    if row is not None:
-        columns = st.columns(3)
-        for col, task in zip(columns, TASKS):
-            field = task_score_column(view, task)
-            score = float(row[field]) if field else float("nan")
-            threshold = float(manifest()["operational_models"][task]["threshold"])
-            with col:
-                st.markdown(f'<div class="ql-score-card" style="--risk:{RISK_COLORS[task]};--risk-bg:{RISK_PALE[task]};--risk-border:{RISK_COLORS[task]}38">'
-                    f'<strong>{RISK_NAMES[task]}</strong><div class="ql-score-number">{score:.4f}</div>'
-                    f'<div class="ql-score-foot">{task_band(score, threshold)} · Threshold {threshold:.3f}</div></div>',
-                    unsafe_allow_html=True)
-        details = [(str(key), row[key]) for key in row.index if key not in ("account_id",)]
-        with st.expander("Observed account evidence (whitelisted aggregate features)", expanded=True):
-            st.dataframe(pd.DataFrame(details, columns=["Feature", "Value"]), hide_index=True, use_container_width=True)
-        st.caption("Model scores indicate ranking, not proven fraud, money laundering or harmful gambling.")
-        if st.session_state.source == "Latest inference":
-            ev = st.session_state.get("fresh_explanations", pd.DataFrame())
-        elif st.session_state.source == "Demo snapshot":
-            ev = demo_evidence().rename(columns={"observed_feature_value": "observed_value"})
-        else:
-            ev = pd.DataFrame()
-        if len(ev):
-            ev = ev.loc[ev.account_id.astype(str) == str(row.account_id)]
-            if len(ev):
-                st.subheader("LightGBM feature contributions")
-                st.dataframe(ev.head(20), hide_index=True, use_container_width=True)
-                st.caption("Contributions are in model raw-margin units and do NOT explain quantum scores.")
-        st.button("Ask the LLM about this case →", on_click=go, args=("LLM Investigator Copilot",), type="primary")
+    row = active_row()
+    if st.session_state.source == "Demo snapshot":
+        source_features = demo_features()
+        source_evidence = demo_evidence()
+    elif st.session_state.source == "Latest inference":
+        source_features = st.session_state.get("fresh_input")
+        source_evidence = st.session_state.get("fresh_explanations", pd.DataFrame())
+    else:
+        source_features = None
+        source_evidence = pd.DataFrame()
+    account360(row=row, data=data_view(), manifest=manifest(),
+               source_name=st.session_state.source, features=source_features,
+               evidence=source_evidence, on_queue=lambda: go("Investigation Queue"),
+               on_copilot=lambda: go("LLM Investigator Copilot"),
+               on_audit=lambda: go("Decisions & Audit"), run_neural=infer_known_accounts,
+               explain_model=lambda features, explanations: score_lightgbm(features, list(OPERATIONAL.values()), explanations=explanations))
 
 elif page == "Historical Context":
     st.caption("Three 30-day observation windows, where aggregates are available.")
@@ -353,63 +317,14 @@ elif page == "Historical Context":
             st.info("This exported account has no three-window values. Raw event histories are not included in the release.")
 
 elif page == "Relationship Explorer":
-    st.caption("Automatically generated graph from account aggregates, or a real observed network from uploaded edges.")
-    row = select_account(data_view(), "graph")
-    if row is not None:
-        features = None
-        if st.session_state.source == "Demo snapshot":
-            features = demo_features()
-        elif st.session_state.source == "Latest inference":
-            features = st.session_state.get("fresh_input")
-        context = context_for_account(row, features)
-        with st.expander("Upload observed relationships (optional)"):
-            st.caption("Real edges must be supplied explicitly. CSV columns: account_id, entity_type, entity_id. "
-                       "entity_type: device, network, payment. Graph never imports synthetic ground-truth ownership labels.")
-            sample = "account_id,entity_type,entity_id\nA0108836,device,DEV001\nA0108836,payment,TOKEN01\nA0000001,device,DEV001\n"
-            st.download_button("Download CSV format example", sample, file_name="qlynx_relationship_schema_example.csv", mime="text/csv")
-            upload_key = f"edge_upload_{st.session_state.get('edge_upload_nonce', 0)}"
-            file = st.file_uploader("Sanitized account-resource edges CSV", type=["csv"], key=upload_key)
-            if file is not None:
-                try:
-                    st.session_state["edges_validated"] = parse_edges(pd.read_csv(file, dtype=str))
-                    st.success(f"Accepted {len(st.session_state.edges_validated):,} distinct observed edges.")
-                except Exception as exc:
-                    st.session_state.pop("edges_validated", None)
-                    st.error(f"Invalid edge CSV: {exc}")
-            if st.button("Clear uploaded edge graph"):
-                st.session_state.pop("edges_validated", None)
-                st.session_state["edge_upload_nonce"] = st.session_state.get("edge_upload_nonce", 0) + 1
-                st.rerun()
-        chosen_mode = st.radio("Graph mode", ["Aggregate evidence (available now)", "Observed account↔resource network"],
-                               horizontal=True)
-        if chosen_mode.startswith("Aggregate"):
-            g, count = aggregate_graph(str(row.account_id), context)
-            if count:
-                st.plotly_chart(render_graph(g, aggregate=True), use_container_width=True)
-                st.caption("Dotted lines connect an account to *summary categories*, not identifiable devices or other accounts. "
-                           "The diagram is generated on each selection from the available numerical aggregates.")
-            else:
-                st.info("No account-level aggregate fields are present for this selection. "
-                        "Use a compatible data upload or the 130-account demo snapshot.")
-        else:
-            edges = st.session_state.get("edges_validated")
-            if edges is None:
-                st.info("A real relationship graph requires sanitized observed edges. "
-                        "Upload a CSV above; the original ZIP does not include account-to-device edge identifiers.")
-            else:
-                g, n_entity = linked_graph(str(row.account_id), edges)
-                if len(g.nodes) == 0:
-                    st.warning("This account has no relationships in the uploaded edge CSV.")
-                else:
-                    st.plotly_chart(render_graph(g), use_container_width=True)
-                    other_accounts = len([n for n in g.nodes if str(n).startswith("Account ")]) - 1
-                    st.caption(f"Observed network: {n_entity} selected account resources · {other_accounts} adjacent accounts. "
-                               "Capped local 2-hop graph; only observed account-resource edges are shown.")
-        with st.expander("Raw observed aggregate values"):
-            allowed = ("distinct_devices", "shared_device_count", "max_device_account_degree", "distinct_networks",
-                       "distinct_regions", "distinct_payment_tokens", "payment_event_count", "session_count")
-            st.dataframe(pd.DataFrame([{"Feature": k, "Value": context[k]} for k in allowed if k in context]),
-                         hide_index=True, use_container_width=True)
+    row = select_account(data_view(), "relationships_v3")
+    if st.session_state.source == "Demo snapshot":
+        source_features = demo_features()
+    elif st.session_state.source == "Latest inference":
+        source_features = st.session_state.get("fresh_input")
+    else:
+        source_features = None
+    relationships(row=row, features=source_features)
 
 elif page == "Data Intake":
     st.caption("Fresh operational scoring of compatible account-level engineered features. Not raw transaction/event ingestion.")

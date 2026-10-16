@@ -10,9 +10,9 @@ import numpy as np
 import pandas as pd
 
 RISK_COLORS = {
-    "fraud": "#6D28D9",        # red
-    "aml": "#1D4ED8",          # orange
-    "protection": "#0E7490",   # green
+    "fraud": "#d92d43",        # red
+    "aml": "#ed8a23",          # orange
+    "protection": "#219c67",   # green
 }
 RISK_PALE = {
     "fraud": "#fff0f1",
@@ -23,11 +23,11 @@ RISK_NAMES = {
     "fraud": "Fraud", "aml": "Anti-Money Laundering", "protection": "Player Protection"
 }
 PRIORITY_COLORS = {
-    "Critical": ("#b42331", "#fff0f1"),
-    "High": ("#ad590b", "#fff3e5"),
-    "Review": ("#285c9b", "#eaf2ff"),
-    "Watch": ("#6953a1", "#f1edff"),
-    "Routine": ("#5f6c80", "#edf1f6"),
+    "Critical": ("#6D28D9", "#F3E8FF"),  # deep violet
+    "High": ("#BE185D", "#FCE7F3"),      # magenta
+    "Review": ("#1D4ED8", "#DBEAFE"),    # royal blue
+    "Watch": ("#0E7490", "#CFFAFE"),     # cyan
+    "Routine": ("#475569", "#F1F5F9"),   # slate gray
 }
 
 def get_score_series(frame: pd.DataFrame, task: str, manifest: dict):
